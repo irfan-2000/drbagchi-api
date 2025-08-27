@@ -20,6 +20,27 @@ public class SubjectController {
     @Autowired
     private SubjectService subjectService;
 
+    @GetMapping("GetAvailableBoards")
+    @PreAuthorize("isAuthenticated()")    // Now only requests with valid token allowed
+    public APIResponseHelper<List<Board>> GetAvailableBoards()
+    {
+        try
+        {
+            List<Board> result = subjectService.GetAvailableBoards();
+
+            if (result != null && !result.isEmpty()) {
+                return new APIResponseHelper<>(200, "Success", result);
+            } else {
+                return new APIResponseHelper<>(204, "No subjects found", null);
+            }
+
+        }catch (Exception ex)
+        {
+            return new APIResponseHelper<>(500, "Internal server error: " + ex.getMessage(), null);
+        }
+
+    }
+
     @GetMapping("GetAvailableSubjects")
     @PermitAll
     public APIResponseHelper<List<SubjectDto>> getAllSubjects(@RequestParam int ClassId)
@@ -64,26 +85,7 @@ public class SubjectController {
 
 
 
-    @GetMapping("GetAvailableBoards")
-    @PreAuthorize("isAuthenticated()")    // Now only requests with valid token allowed
-    public APIResponseHelper<List<Board>> GetAvailableBoards()
-    {
-        try
-        {
-            List<Board> result = subjectService.GetAvailableBoards();
 
-            if (result != null && !result.isEmpty()) {
-                return new APIResponseHelper<>(200, "Success", result);
-            } else {
-                return new APIResponseHelper<>(204, "No subjects found", null);
-            }
-
-        }catch (Exception ex)
-        {
-            return new APIResponseHelper<>(500, "Internal server error: " + ex.getMessage(), null);
-        }
-
-    }
 
 
 

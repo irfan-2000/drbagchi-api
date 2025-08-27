@@ -25,7 +25,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/public/**", "/api/Authenticate").permitAll() // Add your public endpoint
+                        .requestMatchers("/auth/**", "/public/**", "/api/Authenticate","/media/**").permitAll() // Add your public endpoint
                         .anyRequest().authenticated() // all other endpoints require auth
                 )
                 .exceptionHandling(ex -> ex

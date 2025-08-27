@@ -32,7 +32,7 @@ public class LoginSignUpController
     private JwtUtil jwtUtil;
 
     @PostMapping("SubmitSignup")
-        public APIResponseHelper<Boolean> SubmitSignup (HttpServletRequest request,@RequestPart(value = "profileImage", required = false) MultipartFile profileImage    )
+    public APIResponseHelper<Boolean> SubmitSignup (HttpServletRequest request,@RequestPart(value = "profileImage", required = false) MultipartFile profileImage    )
     {
         try
         {
