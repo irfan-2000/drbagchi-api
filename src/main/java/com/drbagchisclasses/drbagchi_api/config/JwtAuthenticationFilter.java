@@ -14,7 +14,10 @@ import java.io.IOException;
 import java.util.List;
 
 @Component
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class JwtAuthenticationFilter extends OncePerRequestFilter
+{
+    public String UserId ;
+    public String Email;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -25,12 +28,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader("Authorization");
         String token = null;
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        if (authHeader != null && authHeader.startsWith("Bearer "))
+        {
             token = authHeader.substring(7);
 
              if (JwtUtil.validateToken(token))
              {
                 String username = JwtUtil.extractUsername(token);
+                this.UserId = JwtUtil.extractUserId(token);
+                this.Email = JwtUtil.extractEmail(token);
                  UsernamePasswordAuthenticationToken auth =
                          new UsernamePasswordAuthenticationToken(username, null, List.of(() -> "ROLE_USER"));
 
@@ -43,4 +49,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Continue filter chain - public endpoints will proceed without authentication
         filterChain.doFilter(request, response);
     }
+
+
+
+
 }

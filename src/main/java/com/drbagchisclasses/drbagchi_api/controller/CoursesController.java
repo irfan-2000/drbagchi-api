@@ -1,5 +1,6 @@
 package com.drbagchisclasses.drbagchi_api.controller;
 
+import com.drbagchisclasses.drbagchi_api.config.JwtAuthenticationFilter;
 import com.drbagchisclasses.drbagchi_api.dto.AllCourseDetails;
 import com.drbagchisclasses.drbagchi_api.dto.CourseById;
 import com.drbagchisclasses.drbagchi_api.dto.LoginDto;
@@ -7,10 +8,17 @@ import com.drbagchisclasses.drbagchi_api.dto.LoginResponseDto;
 import com.drbagchisclasses.drbagchi_api.repository.AllCoursesRepository;
 import com.drbagchisclasses.drbagchi_api.repository.LoginSignUpRepository;
 import com.drbagchisclasses.drbagchi_api.util.APIResponseHelper;
+import io.jsonwebtoken.Jwt;
 import jakarta.annotation.security.PermitAll;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.List;
 @RestController
@@ -19,6 +27,10 @@ public class CoursesController
 {
     @Autowired
     private AllCoursesRepository allCourses;
+
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
 
     @GetMapping("GetAllCourses")
     @PreAuthorize("isAuthenticated()")
@@ -48,9 +60,13 @@ public class CoursesController
     @PreAuthorize("isAuthenticated()")
     public APIResponseHelper<CourseById> GetCourseById(@RequestParam  String CourseId)
     {
+
+
         int Id = Integer.parseInt(CourseId);
 
-        try {
+
+        String Email  = jwtAuthenticationFilter.Email;
+         try {
 
             CourseById result = allCourses.CourseById(Id);
 

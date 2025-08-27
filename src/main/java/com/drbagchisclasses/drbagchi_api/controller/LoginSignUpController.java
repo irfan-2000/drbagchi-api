@@ -13,6 +13,8 @@ import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -114,7 +116,7 @@ public class LoginSignUpController
             if (result != null && result.UserId != null && !result.UserId.isEmpty())
             {
 
-                String Token = jwtUtil.generateToken(result.FullName,result.UserId);
+                String Token = jwtUtil.generateToken(result.FullName,result.UserId,result.Email);
     result.token =Token;
                 // Successful login, JWT can be generated here
                 return new APIResponseHelper<>(200, "Login successful", result);
@@ -129,6 +131,14 @@ public class LoginSignUpController
         }
 
     }
+
+
+    public Authentication getUserDetails()
+    {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    return authentication;
+    }
+
 
 
 }
