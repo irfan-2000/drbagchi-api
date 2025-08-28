@@ -30,6 +30,8 @@ public class LoginSignUpController
 
     @Autowired
     private LoginSignUpRepository loginSignUpRepository;
+
+
     @Autowired
     private JwtUtil jwtUtil;
 

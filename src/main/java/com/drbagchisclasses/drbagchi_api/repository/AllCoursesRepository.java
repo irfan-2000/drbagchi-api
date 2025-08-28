@@ -3,6 +3,7 @@ package com.drbagchisclasses.drbagchi_api.repository;
 import com.drbagchisclasses.drbagchi_api.dto.AllCourseDetails;
 import com.drbagchisclasses.drbagchi_api.dto.Classes;
 import com.drbagchisclasses.drbagchi_api.dto.CourseById;
+import com.drbagchisclasses.drbagchi_api.dto.PricingDto;
 import com.drbagchisclasses.drbagchi_api.util.DbHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -98,5 +99,63 @@ public class AllCoursesRepository
 
 return Course;
         }
+
+
+
+
+    public PricingDto GetPricing(String Email,int UserId ,int courseId,String CouponCode)
+    {
+            PricingDto price = new PricingDto();
+
+        String sql = "EXEC sp_Manage_Discounts @CourseId=:CourseId,@StudentId=:StudentId,@Email=:Email";
+
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        DbHelper.addParameter(params, "CourseId", courseId);
+        DbHelper.addParameter(params, "StudentId", UserId);
+        DbHelper.addParameter(params, "Email", Email);
+
+            if(!CouponCode.isEmpty())
+            {
+                sql+= ",@CouponCode=:CouponCode";
+                DbHelper.addParameter(params,"CouponCode",CouponCode);
+            }
+
+
+        List<Map<String,Object>> rows = namedJdbcTemplate.queryForList(sql,params);
+
+        for (Map<String, Object> row : rows)
+        {
+            price.BasePrice = row.get("Price") != null ? new BigDecimal(row.get("Price").toString()) : BigDecimal.ZERO;
+            price.discountId = row.get("DiscountId") != null ? row.get("DiscountId").toString() : null;
+            price.discountName = row.get("DiscountName") != null ? row.get("DiscountName").toString() : null;
+            price.type = row.get("Type") != null ? row.get("Type").toString() : null;
+             price.appliedTo = row.get("AppliedTo") != null ? row.get("AppliedTo").toString() : null;
+            price.studentDiscountId = row.get("StudentDiscountId") != null ? row.get("StudentDiscountId").toString() : null;
+            price.studentId = row.get("StudentId") != null ? row.get("StudentId").toString() : null;
+            price.appliedOn = row.get("AppliedOn") != null ? row.get("AppliedOn").toString() : null;
+            price.email = row.get("Email") != null ? row.get("Email").toString() : null;
+            price.appliesTo = row.get("AppliesTo") != null ? row.get("AppliesTo").toString() : null;
+            price.courseId = row.get("CourseId") != null ? row.get("CourseId").toString() : null;
+            price.value = row.get("Value") != null ? row.get("Value").toString() : null;
+        }
+
+    return price;
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }

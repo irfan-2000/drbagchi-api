@@ -65,7 +65,7 @@ public class CoursesController
         int Id = Integer.parseInt(CourseId);
 
 
-        String Email  = jwtAuthenticationFilter.Email;
+
          try {
 
             CourseById result = allCourses.CourseById(Id);
