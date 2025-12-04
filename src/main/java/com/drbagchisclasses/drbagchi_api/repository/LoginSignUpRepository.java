@@ -109,9 +109,11 @@ public class LoginSignUpRepository
         dto.enrolledCourses = new ArrayList<>();
 
         // First table (#result-set-1)
-        if (result.containsKey("#result-set-1")) {
+        if (result.containsKey("#result-set-1"))
+        {
             List<Map<String, Object>> table1 = (List<Map<String, Object>>) result.get("#result-set-1");
-            if (!table1.isEmpty()) {
+            if (!table1.isEmpty())
+            {
                 Map<String, Object> studentRow = table1.get(0);
                 dto.UserId   = studentRow.get("StudentId") != null ? studentRow.get("StudentId").toString() : "";
                 dto.FullName = studentRow.get("FullName")  != null ? studentRow.get("FullName").toString()  : "";

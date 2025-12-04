@@ -38,7 +38,8 @@ public class PricingController
 
     @PostMapping("GetPricing")
     @PreAuthorize("isAuthenticated()")
-    public APIResponseHelper<PricingDto> GetPricing(@RequestBody Object dto) {
+    public APIResponseHelper<PricingDto> GetPricing(@RequestBody Object dto)
+    {
         String email = jwtAuthenticationFilter.Email;
         String userId = jwtAuthenticationFilter.UserId;
 

@@ -12,11 +12,13 @@ public class SPHelper
 
     private final JdbcTemplate jdbcTemplate;
 
-    public SPHelper(JdbcTemplate jdbcTemplate) {
+    public SPHelper(JdbcTemplate jdbcTemplate)
+    {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public Map<String, Object> executeSP(String procedureName, Map<String, Object> params) {
+    public Map<String, Object> executeSP(String procedureName, Map<String, Object> params)
+    {
         SimpleJdbcCall call = new SimpleJdbcCall(jdbcTemplate)
                 .withProcedureName(procedureName);
 
