@@ -26,8 +26,6 @@ public class LoginSignUpRepository
     private SimpleJdbcCall simpleJdbcCall;
 
 
-
-
     public boolean SignUp(SignupDto dto)
     {
 

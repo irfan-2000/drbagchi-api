@@ -28,6 +28,8 @@ public class AllCoursesRepository
     @Autowired
     private SPHelper spHelper;
 
+
+
     public List<AllCourseDetails> GetAllCourses()
     {
         List<AllCourseDetails> AllCourses = new ArrayList<AllCourseDetails>();
@@ -140,23 +142,21 @@ return Course;
     }
 
 
+    public PaymentMethodDto GetPaymentTypeandstatus(int CourseId) {
 
-    public PaymentMethodDto GetPaymentTypeandstatus(int CourseId)
-    {
         PaymentMethodDto data = new PaymentMethodDto();
+        data.Installments = new ArrayList<>();
 
         Map<String, Object> params = new HashMap<>();
         params.put("CourseId", CourseId);
 
         Map<String, Object> result = spHelper.executeSP("sp_GetPaymentTypeFreshUsers", params);
 
-        // ------- FIRST RESULT SET --------
-        if (result.containsKey("#result-set-1"))
-        {
+        // -------- FIRST RESULT SET --------
+        if (result.containsKey("#result-set-1")) {
             List<Map<String, Object>> table1 = (List<Map<String, Object>>) result.get("#result-set-1");
 
-            if (!table1.isEmpty())
-            {
+            if (!table1.isEmpty()) {
                 Map<String, Object> row = table1.get(0);
 
                 data.CourseId = row.get("CourseId") != null ? row.get("CourseId").toString() : "";
@@ -165,23 +165,91 @@ return Course;
             }
         }
 
-        // ------- SECOND RESULT SET (only if subscription) --------
-        if (data.PaymentType.equalsIgnoreCase("subscription") && result.containsKey("#result-set-2"))
-        {
+        // -------- SECOND RESULT SET for Subscription --------
+        if (data.PaymentType.equalsIgnoreCase("subscription") && result.containsKey("#result-set-2")) {
+
             List<Map<String, Object>> table2 = (List<Map<String, Object>>) result.get("#result-set-2");
 
-            if (!table2.isEmpty())
-            {
+            if (!table2.isEmpty()) {
                 Map<String, Object> row = table2.get(0);
-                data.MonthlyAmount = row.get("MonthlyAmount") != null ?  (row.get("MonthlyAmount").toString()) : "0";
-                data.QuarterlyAmount = row.get("QuarterlyAmount") != null ?  (row.get("QuarterlyAmount").toString()) : "0";
-                data.HalfYearlyAmount = row.get("HalfYearlyAmount") != null ? (row.get("HalfYearlyAmount").toString()) : "0";
-                data.YearlyAmount = row.get("YearlyAmount") != null ? (row.get("YearlyAmount").toString()) : "0";
+
+                data.MonthlyAmount = row.get("MonthlyAmount") != null ? row.get("MonthlyAmount").toString() : "0";
+                data.QuarterlyAmount = row.get("QuarterlyAmount") != null ? row.get("QuarterlyAmount").toString() : "0";
+                data.HalfYearlyAmount = row.get("HalfYearlyAmount") != null ? row.get("HalfYearlyAmount").toString() : "0";
+                data.YearlyAmount = row.get("YearlyAmount") != null ? row.get("YearlyAmount").toString() : "0";
+            }
+        }
+
+        // -------- FIXED PAYMENT MODE --------
+        if (data.PaymentType.equalsIgnoreCase("fixed"))
+        {
+
+            // ONE TIME
+            if (data.fixed_paymentMode.equalsIgnoreCase("oneTime") && result.containsKey("#result-set-2"))
+            {
+
+                List<Map<String, Object>> table2 = (List<Map<String, Object>>) result.get("#result-set-2");
+                if (!table2.isEmpty()) {
+                    Map<String, Object> row = table2.get(0);
+                    data.Totalprice = row.get("TotalPrice") != null ? row.get("TotalPrice").toString() : "0";
+                }
+            }
+
+            // INSTALLMENTS
+            if (data.fixed_paymentMode.equalsIgnoreCase("installments") && result.containsKey("#result-set-3"))
+            {
+
+                List<Map<String, Object>> table3 = (List<Map<String, Object>>) result.get("#result-set-3");
+
+                for (Map<String, Object> row : table3)
+                {
+                    InstallmentDto i = new InstallmentDto();
+                    i.InstallmentId = row.get("InstallmentId") != null ? row.get("InstallmentId").toString() : "0";
+                    i.InstallmentNo = row.get("InstallmentNo") != null ? row.get("InstallmentNo").toString() : "0";
+                    i.Amount = row.get("Amount") != null ? row.get("Amount").toString() : "0";
+                    i.DaysAfterEnrollment = row.get("DaysAfterEnrollment") != null ? row.get("DaysAfterEnrollment").toString() : "0";
+
+                    data.Installments.add(i);
+                }
+            }
+
+            // BOTH (oneTime + installments)
+            if (data.fixed_paymentMode.equalsIgnoreCase("both"))
+            {
+
+                // Total Price - table2
+                if (result.containsKey("#result-set-2"))
+                {
+                    List<Map<String, Object>> table2 = (List<Map<String, Object>>) result.get("#result-set-2");
+
+                    if (!table2.isEmpty()) {
+                        Map<String, Object> row = table2.get(0);
+                        data.Totalprice = row.get("TotalPrice") != null ? row.get("TotalPrice").toString() : "0";
+                    }
+                }
+
+                // Installments - table3
+                if (result.containsKey("#result-set-3"))
+                {
+                    List<Map<String, Object>> table3 = (List<Map<String, Object>>) result.get("#result-set-3");
+
+                    for (Map<String, Object> row : table3) {
+                        InstallmentDto i = new InstallmentDto();
+                        i.InstallmentId = row.get("InstallmentId") != null ? row.get("InstallmentId").toString() : "0";
+                        i.InstallmentNo = row.get("InstallmentNo") != null ? row.get("InstallmentNo").toString() : "0";
+                        i.Amount = row.get("Amount") != null ? row.get("Amount").toString() : "0";
+                        i.DaysAfterEnrollment = row.get("DaysAfterEnrollment") != null ? row.get("DaysAfterEnrollment").toString() : "0";
+
+                        data.Installments.add(i);
+                    }
+                }
             }
         }
 
         return data;
     }
+
+
 
 
     public boolean InsertSubscription(
@@ -194,14 +262,15 @@ return Course;
             String discountCode,
             String orderId,
             String paymentId,
-            String batchId) {
+            String batchId )
+    {
 
         try {
             String sql = "EXEC sp_InsertEnrollment_subscription " +
                     "@CourseId=:CourseId, @StudentId=:StudentId, @BatchId=:BatchId, " +
                     "@PaymentType=:PaymentType, @IsWeb=:IsWeb, " +
                     "@AmountPaid=:AmountPaid, @DiscountAppliedId=:DiscountAppliedId, " +
-                    "@fixed_paymentMode=:fixed_paymentMode, @OrderId=:OrderId, @PaymentId=:PaymentId";
+                    "@fixed_paymentMode=:fixed_paymentMode, @OrderId=:OrderId, @PaymentId=:PaymentId,@selectedPlan=:selectedPlan";
 
             MapSqlParameterSource params = new MapSqlParameterSource();
 
@@ -215,6 +284,7 @@ return Course;
             params.addValue("fixed_paymentMode", null);  // passing null unless you have value
             params.addValue("OrderId", orderId);
             params.addValue("PaymentId", paymentId);
+            params.addValue("selectedPlan", selectedPlan);
 
             int result = namedJdbcTemplate.update(sql, params);
 
@@ -244,6 +314,92 @@ return Course;
         return (value != null && value.equals("1")) || (value != null && value.equalsIgnoreCase("true"));
     }
 
+    public IsActiveSubscription Check_Issubscribed(int userId, int courseId) {
+
+        IsActiveSubscription subscription = new IsActiveSubscription();
+
+        String sql = "EXEC sp_GetIsActiveSubscription @CourseId=:CourseId,@StudentId=:StudentId";
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        DbHelper.addParameter(params, "CourseId", courseId);
+        DbHelper.addParameter(params, "StudentId", userId);
+
+        List<Map<String, Object>> rows = namedJdbcTemplate.queryForList(sql, params);
+
+        for (Map<String, Object> row : rows) {
+
+            subscription.enrollmentId = row.get("EnrollmentId") != null ? row.get("EnrollmentId").toString() : null;
+            subscription.studentId = row.get("StudentId") != null ? row.get("StudentId").toString() : null;
+            subscription.courseId = row.get("CourseId") != null ? row.get("CourseId").toString() : null;
+            subscription.batchId = row.get("BatchId") != null ? row.get("BatchId").toString() : null;
+            subscription.enrollmentDate = row.get("EnrollmentDate") != null ? row.get("EnrollmentDate").toString() : null;
+            subscription.status = row.get("Status") != null ? row.get("Status").toString() : null;
+            subscription.amountPaid = row.get("AmountPaid") != null ? row.get("AmountPaid").toString() : null;
+            subscription.discountAppliedId = row.get("DiscountAppliedId") != null ? row.get("DiscountAppliedId").toString() : null;
+            subscription.isPaid = row.get("IsPaid") != null ? row.get("IsPaid").toString() : null;
+            subscription.paymentType = row.get("PaymentType") != null ? row.get("PaymentType").toString() : null;
+            subscription.fixedPaymentMode = row.get("fixed_paymentMode") != null ? row.get("fixed_paymentMode").toString() : null;
+            subscription.validFrom = row.get("ValidFrom") != null ? row.get("ValidFrom").toString() : null;
+            subscription.validTill = row.get("ValidTill") != null ? row.get("ValidTill").toString() : null;
+            subscription.paidDate = row.get("PaidDate") != null ? row.get("PaidDate").toString() : null;
+            subscription.createdAt = row.get("CreatedAt") != null ? row.get("CreatedAt").toString() : null;
+            subscription.orderId = row.get("orderid") != null ? row.get("orderid").toString() : null;
+            subscription.paymentId = row.get("paymentid") != null ? row.get("paymentid").toString() : null;
+            subscription.isWeb = row.get("Isweb") != null ? row.get("Isweb").toString() : null;
+            subscription.selectedPlan = row.get("SelectedPlan") != null ? row.get("SelectedPlan").toString() : null;
+            subscription.message = row.get("Message") != null ? row.get("Message").toString() : null;
+            subscription.isActive = row.get("IsActive") != null ? row.get("IsActive").toString() : null;
+        }
+
+        return subscription;
+    }
+
+
+
+
+    public boolean InsertSubscription_fixed(
+            String courseId,
+            String selectedPlan,
+            String paymentType,
+            String isWeb,         // IsPaid or IsWeb?
+            String userId,
+            String amount,
+            String discountCode,
+            String orderId,
+            String paymentId,
+            String batchId,String InstallmentNo )
+    {
+
+        try {
+            String sql = "EXEC sp_InsertEnrollment_subscription " +
+                    "@CourseId=:CourseId, @StudentId=:StudentId, @BatchId=:BatchId, " +
+                    "@PaymentType=:PaymentType, @IsWeb=:IsWeb, " +
+                    "@AmountPaid=:AmountPaid, @DiscountAppliedId=:DiscountAppliedId, " +
+                    "@fixed_paymentMode=:fixed_paymentMode, @OrderId=:OrderId, @PaymentId=:PaymentId,@selectedPlan=:selectedPlan";
+
+            MapSqlParameterSource params = new MapSqlParameterSource();
+
+            params.addValue("CourseId", parseIntSafe(courseId));
+            params.addValue("StudentId", parseIntSafe(userId));
+            params.addValue("BatchId", parseIntSafe(batchId));
+            params.addValue("PaymentType", paymentType);
+            params.addValue("IsWeb", parseIntSafe(isWeb));
+            params.addValue("AmountPaid", parseDoubleSafe(amount));
+            params.addValue("DiscountAppliedId", parseIntSafeOrNull(discountCode));
+            params.addValue("fixed_paymentMode", selectedPlan);  // passing null unless you have value
+            params.addValue("OrderId", orderId);
+            params.addValue("PaymentId", paymentId);
+            params.addValue("selectedPlan", selectedPlan);
+
+            int result = namedJdbcTemplate.update(sql, params);
+
+            return result > 0;
+
+        } catch (Exception ex) {
+            System.err.println("InsertSubscription Error: " + ex.getMessage());
+            ex.printStackTrace();
+            return false;
+        }
+    }
 
 
 

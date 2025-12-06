@@ -19,3 +19,5 @@ public class AllCourseDetails
     public String CourseImage;
     public String OldPrice;
 }
+
+
