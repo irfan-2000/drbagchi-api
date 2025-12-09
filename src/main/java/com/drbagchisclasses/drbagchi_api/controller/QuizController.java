@@ -29,71 +29,130 @@ public class QuizController
 
     @PostMapping("startquiz")
     @PreAuthorize("isAuthenticated()")
-    public APIResponseHelper<?> startQuiz(@RequestParam String QuizId, @RequestParam String CourseId, @RequestParam int attempt) {
+    public APIResponseHelper<?> startQuiz(@RequestParam String QuizId, @RequestParam String CourseId) {
         try {
             // Get student ID from JWT
             String studentId = jwtAuthenticationFilter.UserId;
 
             // Fetch quiz data
             var quizdata = quizservice.getquizdata(Integer.parseInt(QuizId));
-            if (quizdata == null) {
-                return new APIResponseHelper<>(404, "Quiz not found", null);
+            if (quizdata == null)
+            {
+                return new APIResponseHelper<>(404, "Data not found", null);
             }
+            String sessionId = createSession();
+            var startquiz = quizservice.startQuiz(  Integer.parseInt(studentId),   Integer.parseInt(CourseId),   Integer.parseInt(QuizId),"started",1,   sessionId);
 
-            // Calculate end time based on quiz duration
-            Map<String, String> output = calculateEndDateTime(
-                    quizdata.startDateTime,
-                    quizdata.startTime,
-                    quizdata.duration
-            );
+            if(startquiz != null)
+            {
+                return new APIResponseHelper<>(200, "Success", startquiz);
 
-            // Generate 6-digit session ID
-            String sessionId = createSession();  // returns only 6-digit string
+            }else
+            {                return new APIResponseHelper<>(500, "internal server error", startquiz);
 
-            // Convert duration string to total minutes
-            int durationMinutes = getMinutes(quizdata.duration);
-
-            // Insert quiz attempt
-            var quizresult = quizservice.insertQuizAttempt(
-                    "I",                          // flag
-                    0,                            // id
-                    Integer.parseInt(studentId),  // studentId
-                    Integer.parseInt(CourseId),   // courseId
-                    Integer.parseInt(quizdata.quizId), // quizId
-                    quizdata.startDateTime,       // startDate
-                    quizdata.endDateTime,         // endDate
-                    output.get("EndTime"),        // endTime
-                    "Running",                    // status
-                    0,                            // violations
-                    0,                            // isSubmitted
-                    sessionId,                    // sessionId
-                    durationMinutes,              // duration in minutes
-                    attempt                       // attempt number
-            );
-
-            if (quizresult != null) {
-                // Calculate actual start and end times
-                LocalDateTime startTimeUTC = LocalDateTime.now(ZoneOffset.UTC);
-                LocalDateTime endTimeUTC = startTimeUTC.plusMinutes(durationMinutes);
-
-                // Optional: attach start/end times to response if needed
-                Map<String, Object> responseData = new HashMap<>();
-                responseData.put("quizResult", quizresult);
-                responseData.put("startTimeUTC", startTimeUTC);
-                responseData.put("endTimeUTC", endTimeUTC);
-                responseData.put("sessionId", sessionId);
-
-                return new APIResponseHelper<>(200, "Success", responseData);
-            } else {
-                return new APIResponseHelper<>(500, "Failed to insert quiz attempt", null);
             }
-
-        } catch (Exception ex) {
+        } catch (Exception ex)
+        {
             ex.printStackTrace();
             return new APIResponseHelper<>(500, "Internal server error", null);
         }
     }
 
+    @PostMapping("UpdatequizProgress")
+    @PreAuthorize("isAuthenticated()")
+    public APIResponseHelper<?> UpdatequizProgress(@RequestParam String SessionId,@RequestParam String QuizId)
+    {
+        try
+        {
+            var result = quizservice.getquizsessiondata(SessionId);
+            if(result == null)
+            {
+                return new APIResponseHelper<>(404, "session not found", null);
+
+            }
+
+
+            if (!"started".equals(result.Status))
+            {
+                return new APIResponseHelper<>(404, "quiz not started or completed", null);
+            }
+
+
+
+
+            var quizdata = quizservice.getquizdata(Integer.parseInt(QuizId));
+            if (quizdata == null)
+            {
+                return new APIResponseHelper<>(404, "Data not found", null);
+            }
+
+            Map<String, String> output = calculateEndDateTime(
+                    quizdata.startDateTime,
+                    quizdata.startTime,
+                    quizdata.duration
+            );
+            int durationMinutes = getMinutes(quizdata.duration);
+
+
+
+            if ("1".equals(result.Attempt))
+            { // Fresh page load
+                if (result.StartDate == null || result.StartDate.isEmpty())
+                {
+                  //String Sessionid,String Starttime,String Endtime,int Duration,String Startdate,String Enddate
+
+                    LocalDateTime startTimeUTC = LocalDateTime.now(ZoneOffset.UTC);
+                    LocalDateTime endTimeUTC = startTimeUTC.plusMinutes(durationMinutes);
+
+                    // Optional: attach start/end times to response if needed
+                    Map<String, Object> responseData = new HashMap<>();
+                     responseData.put("startTimeUTC", startTimeUTC);
+                    responseData.put("endTimeUTC", endTimeUTC);
+                    responseData.put("sessionId", SessionId);
+                    responseData.put("serverTimeUTC", LocalDateTime.now(ZoneOffset.UTC)); // <-- add this
+
+                    DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                    // current date UTC
+
+
+                    LocalDate currentDateUTC = LocalDate.now(ZoneOffset.UTC);  // StartDate / EndDate in UTC
+
+
+                    var quizresult = quizservice.UpdateQuizProgress(
+                            SessionId,                          // flag
+                            startTimeUTC,                            // id
+                            endTimeUTC,  // studentId
+                            durationMinutes ,   // courseId
+                            currentDateUTC, // quizId
+                            currentDateUTC);
+
+                    return new APIResponseHelper<>(200, "quiz updated", responseData);
+
+                }else
+                {
+                 // check if quiz is expired
+
+                    Map<String, Object> responseData = new HashMap<>();
+                    responseData.put("startTimeUTC", result.StartTime);
+                    responseData.put("endTimeUTC", result.EndTime);
+                    responseData.put("sessionId", SessionId);
+                    responseData.put("serverTimeUTC", LocalDateTime.now(ZoneOffset.UTC)); // <-- add this
+
+                    return new APIResponseHelper<>(200, "quiz updated", responseData);
+
+                }
+
+            }
+            return new APIResponseHelper<>(404, "Data not found", null);
+
+
+        }catch (Exception ex)
+        {
+            return new APIResponseHelper<>(404, "Data not found", null);
+
+        }
+
+    }
 
 
 
@@ -140,6 +199,32 @@ public class QuizController
         return hours * 60 + minutes;
     }
 
+
+    @GetMapping("GetALLQuizByStatus")
+    @PreAuthorize("isAuthenticated()")
+    public APIResponseHelper<?>GetALLQuizByStatus(String Flag)
+    {
+        String studentId = jwtAuthenticationFilter.UserId;
+
+        try {
+             var result = quizservice.GetALLQuizByStatus(Flag,Integer.parseInt(studentId));
+
+            if (result != null)
+            {
+                return new APIResponseHelper<>(200, "Success", result);
+            } else
+            {
+                return new APIResponseHelper<>(204, "No subjects found", null);
+            }
+        } catch (Exception ex)
+        {
+            String errorMessage = (ex.getMessage() != null) ? ex.getMessage() : "Unknown error";
+
+            return new APIResponseHelper<>(500, "Internal Server Error" + ex.getMessage(), null);
+        }
+
+
+    }
 
 
 
