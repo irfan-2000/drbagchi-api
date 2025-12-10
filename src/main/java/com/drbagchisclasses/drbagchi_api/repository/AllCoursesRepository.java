@@ -153,7 +153,8 @@ return Course;
         Map<String, Object> result = spHelper.executeSP("sp_GetPaymentTypeFreshUsers", params);
 
         // -------- FIRST RESULT SET --------
-        if (result.containsKey("#result-set-1")) {
+        if (result.containsKey("#result-set-1"))
+        {
             List<Map<String, Object>> table1 = (List<Map<String, Object>>) result.get("#result-set-1");
 
             if (!table1.isEmpty()) {
@@ -166,7 +167,8 @@ return Course;
         }
 
         // -------- SECOND RESULT SET for Subscription --------
-        if (data.PaymentType.equalsIgnoreCase("subscription") && result.containsKey("#result-set-2")) {
+        if (data.PaymentType.equalsIgnoreCase("subscription") && result.containsKey("#result-set-2"))
+        {
 
             List<Map<String, Object>> table2 = (List<Map<String, Object>>) result.get("#result-set-2");
 

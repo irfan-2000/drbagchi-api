@@ -22,8 +22,6 @@ public class QuizController
     @Autowired
     public QuizRepository quizservice;
 
-
-
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -76,9 +74,6 @@ public class QuizController
             {
                 return new APIResponseHelper<>(404, "quiz not started or completed", null);
             }
-
-
-
 
             var quizdata = quizservice.getquizdata(Integer.parseInt(QuizId));
             if (quizdata == null)
@@ -226,6 +221,48 @@ public class QuizController
 
     }
 
+    @PostMapping("GetQuizData")
+    @PreAuthorize("isAuthenticated()")
+        public APIResponseHelper<?> GetQuizData(String quizId, String sessionId) {
+        try {
+
+            // Fetch session info
+            var session = quizservice.getquizsessiondata(sessionId);
+            if (session == null) {
+                return new APIResponseHelper<>(404, "Session not found", null);
+            }
+
+            // Status must be "started"
+            if (!"started".equalsIgnoreCase(session.Status)) {
+                return new APIResponseHelper<>(404, "Quiz not started or already completed", null);
+            }
+
+            // Current UTC date & time
+            LocalDate currentDateUTC = LocalDate.now(ZoneOffset.UTC);
+            LocalTime currentTimeUTC = LocalTime.now(ZoneOffset.UTC);
+
+            // Convert DB values to LocalDate & LocalTime
+            LocalDate endDate = LocalDate.parse(session.EndDate.split(" ")[0]);
+            LocalTime endTime = LocalTime.parse(session.EndTime.split(" ")[1]);
+
+            // Check if quiz time is over
+            boolean timeOver =
+                    currentDateUTC.isAfter(endDate) ||
+                            (currentDateUTC.isEqual(endDate) && currentTimeUTC.isAfter(endTime));
+            if (timeOver) {
+                return new APIResponseHelper<>(410, "Quiz time over", null);
+            }
+
+            // Fetch quiz questions & details
+            var quizdata = quizservice.getQuizData(Integer.parseInt(quizId));
+
+            return new APIResponseHelper<>(200, "Quiz fetched successfully", quizdata);
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return new APIResponseHelper<>(500, "Internal server error", null);
+        }
+    }
 
 
 }

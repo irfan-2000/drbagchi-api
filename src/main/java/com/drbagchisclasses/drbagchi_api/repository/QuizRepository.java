@@ -16,9 +16,9 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
+
 @Repository
 public class QuizRepository
 {
@@ -321,6 +321,173 @@ public class QuizRepository
         return result > 0;
     }
 
+
+    public class QuizDto
+    {
+        public int QuizId = 0;
+        public int CourseId;
+
+
+        public String Title = "";
+        public List<QuizQuestionDto> Questions = new ArrayList<>();
+
+        public int Status;
+
+        public int TotalQuestions;
+
+        public double MarksPerQuestion;
+
+        public boolean AllowNegative;
+
+        public boolean ShuffleQuestions;
+
+        public double TotalMarks;
+
+        public String Subjects;
+
+        public boolean AllowSkip;
+
+        public double Negativemarks;
+    }
+
+
+
+    public class QuizQuestionDto
+    {
+        public int QuestionId = 0;
+
+        public String QuestionText = "";
+
+        public String IsNumerical = "";
+
+        public String PositiveMarks = "";
+
+        public String NegativeMarks = "";
+
+        public List<String> ImagePaths;
+
+        public String NumericalAnswer = "";
+
+        public List<QuizOptionDto> Options = new ArrayList<>();
+
+        public String OptionA;
+        public String OptionB;
+        public String OptionC;
+        public String OptionD;
+        public int correctCount = 0;   // <── Add this
+
+        public String QuestionType;
+
+     }
+
+    public class QuizOptionDto
+    {
+        public int QuestionId = 0;
+        public String Text = "";
+        public boolean IsCorrect = false;
+
+    }
+
+
+
+    public List<QuizQuestionDto> getQuizData(int quizId) {
+        List<QuizQuestionDto> questions = new ArrayList<>();
+
+        try {
+            Map<String, Object> params = new HashMap<>();
+            params.put("@quizid", quizId);
+            params.put("@Flag", "Id");
+
+            Map<String, Object> result = spHelper.executeSP("usp_getquizdata", params);
+
+            // --- TABLE 2 : QUESTIONS ---
+            if (result.containsKey("#result-set-2")) {
+                List<Map<String, Object>> table2 = (List<Map<String, Object>>) result.get("#result-set-2");
+
+                for (Map<String, Object> row : table2)
+                {
+                    QuizQuestionDto question = new QuizQuestionDto();
+
+                    question.QuestionId = row.get("QuestionId") != null
+                            ? Integer.parseInt(row.get("QuestionId").toString())
+                            : 0;
+
+                    question.QuestionText = row.getOrDefault("QuestionText", "").toString();
+                    question.IsNumerical = row.getOrDefault("IsNumerical", "").toString();
+                    question.PositiveMarks = row.getOrDefault("PositiveMarks", "").toString();
+                    question.NegativeMarks = row.getOrDefault("NegativeMarks", "").toString();
+
+                    String raw = row.get("Images") != null ? row.get("Images").toString() : "";
+
+                    if (raw.isEmpty())
+                    {
+                        question.ImagePaths = new ArrayList<>();
+                    } else
+                    {
+                        question.ImagePaths = Arrays.stream(raw.split(","))
+                                .map(img -> GlobalFetchPath +"QuestionImages/"+ img.trim())
+                                .collect(Collectors.toList());
+                    }
+
+
+                    questions.add(question);
+                }
+            }
+
+            // --- TABLE 3 : OPTIONS ---
+            if (result.containsKey("#result-set-3"))
+            {
+                List<Map<String, Object>> table3 = (List<Map<String, Object>>) result.get("#result-set-3");
+
+                for (Map<String, Object> row : table3) {
+                    int qid = Integer.parseInt(row.get("QuestionId").toString());
+                    String text = row.get("OptionText") != null ? row.get("OptionText").toString() : "";
+                    int isCorrect = row.get("IsCorrect") != null ? Integer.parseInt(row.get("IsCorrect").toString()) : 0;
+
+                    QuizQuestionDto q = questions.stream()
+                            .filter(x -> x.QuestionId == qid)
+                            .findFirst()
+                            .orElse(null);
+
+                    if (q == null) continue;
+
+                    // Fill options in A → B → C → D order
+                    if (q.OptionA == null || q.OptionA.isEmpty()) q.OptionA = text;
+                    else if (q.OptionB == null || q.OptionB.isEmpty()) q.OptionB = text;
+                    else if (q.OptionC == null || q.OptionC.isEmpty()) q.OptionC = text;
+                    else if (q.OptionD == null || q.OptionD.isEmpty()) q.OptionD = text;
+
+                     if (isCorrect == 1)
+                        q.correctCount++;
+
+
+
+                }
+                for (QuizQuestionDto q : questions)
+                {
+                    if ("1".equals(q.IsNumerical))
+                    {
+                        q.QuestionType = "NUM";  // numerical input
+
+                     }
+                    else if (q.correctCount > 1)
+                    {
+                        q.QuestionType = "MSQ";  // multiple correct → checkbox
+                    }
+                    else
+                    {
+                        q.QuestionType = "MCQ";  // single correct → radio
+                    }
+                }
+
+            }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        return questions;
+    }
 
 
 
