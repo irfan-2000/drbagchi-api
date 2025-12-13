@@ -1,10 +1,9 @@
 package com.drbagchisclasses.drbagchi_api.repository;
 
-import com.drbagchisclasses.drbagchi_api.dto.AllCourseDetails;
-import com.drbagchisclasses.drbagchi_api.dto.quizdataforuser;
-import com.drbagchisclasses.drbagchi_api.dto.quizsessiondata;
+import com.drbagchisclasses.drbagchi_api.dto.*;
 import com.drbagchisclasses.drbagchi_api.util.DbHelper;
 import com.drbagchisclasses.drbagchi_api.util.SPHelper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -489,6 +488,103 @@ public class QuizRepository
         return questions;
     }
 
+
+
+
+    public static String buildAnswersXml(List<SubmittedAnswerDto> answers) {
+
+        StringBuilder xml = new StringBuilder();
+        xml.append("<Answers>");
+
+        for (SubmittedAnswerDto ans : answers) {
+
+            xml.append("<Answer>");
+
+            xml.append("<QuestionId>")
+                    .append(ans.questionId)
+                    .append("</QuestionId>");
+
+            xml.append("<QuestionType>")
+                    .append(ans.questionType)
+                    .append("</QuestionType>");
+
+            // Handle MCQ / MSQ / NUM
+            String selectedOption = "";
+
+            if (ans.answer != null) {
+                if (ans.answer instanceof List) {
+                    // MSQ
+                    @SuppressWarnings("unchecked")
+                    List<String> list = (List<String>) ans.answer;
+                    selectedOption = String.join(",", list);
+                } else {
+                    // MCQ / NUM
+                    selectedOption = ans.answer.toString();
+                }
+            }
+
+            xml.append("<SelectedOption>")
+                    .append(escapeXml(selectedOption))
+                    .append("</SelectedOption>");
+
+            xml.append("</Answer>");
+        }
+
+        xml.append("</Answers>");
+
+        return xml.toString();
+    }
+
+    private static String escapeXml(String value) {
+        if (value == null) return "";
+        return value
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&apos;");
+    }
+
+
+
+
+
+    public int  saveSubmittedAnswers(
+            SubmitQuizRequest request,
+            String answersXml,
+            String studentId,quizsessiondata result
+     ) {
+
+        int insertedCount = 0;
+        try {
+
+            String sql = "EXEC sp_InsertQuizAnswers_XML " +
+                    "@SessionId = :SessionId, " +
+                    "@AnswersXml = :AnswersXml";
+
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            params.addValue("SessionId", request.sessionId);
+            params.addValue("AnswersXml", answersXml);
+
+            Map<String, Object> response =
+                    namedJdbcTemplate.queryForMap(sql, params);
+
+              insertedCount = response.get("InsertedCount") != null
+                    ? Integer.parseInt(response.get("InsertedCount").toString())
+                    : 0;
+
+            System.out.println("✅ Quiz answers inserted: " + insertedCount);
+
+
+
+        } catch (Exception ex) {
+            System.err.println("❌ Error saving quiz answers");
+            ex.printStackTrace();
+            throw ex; // IMPORTANT: do not silently swallow errors
+        }
+
+        return insertedCount;
+    }
 
 
 }

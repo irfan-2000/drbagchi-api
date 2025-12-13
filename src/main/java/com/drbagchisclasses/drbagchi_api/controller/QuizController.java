@@ -1,6 +1,7 @@
 package com.drbagchisclasses.drbagchi_api.controller;
 
 import com.drbagchisclasses.drbagchi_api.config.JwtAuthenticationFilter;
+import com.drbagchisclasses.drbagchi_api.dto.SubmitQuizRequest;
 import com.drbagchisclasses.drbagchi_api.dto.quizdataforuser;
 import com.drbagchisclasses.drbagchi_api.repository.QuizRepository;
 import com.drbagchisclasses.drbagchi_api.util.APIResponseHelper;
@@ -12,8 +13,11 @@ import org.springframework.web.bind.annotation.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
+
+import static com.drbagchisclasses.drbagchi_api.repository.QuizRepository.buildAnswersXml;
 
 @RestController
 @RequestMapping("/api")
@@ -46,7 +50,8 @@ public class QuizController
                 return new APIResponseHelper<>(200, "Success", startquiz);
 
             }else
-            {                return new APIResponseHelper<>(500, "internal server error", startquiz);
+            {
+                return new APIResponseHelper<>(500, "internal server error", startquiz);
 
             }
         } catch (Exception ex)
@@ -66,7 +71,6 @@ public class QuizController
             if(result == null)
             {
                 return new APIResponseHelper<>(404, "session not found", null);
-
             }
 
 
@@ -123,15 +127,24 @@ public class QuizController
 
                     return new APIResponseHelper<>(200, "quiz updated", responseData);
 
-                }else
+                }
+                else
                 {
+
                  // check if quiz is expired
+                    DateTimeFormatter formatter =
+                            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+                    LocalDateTime endTime =
+                            LocalDateTime.parse(result.EndTime, formatter);
+
 
                     Map<String, Object> responseData = new HashMap<>();
                     responseData.put("startTimeUTC", result.StartTime);
                     responseData.put("endTimeUTC", result.EndTime);
                     responseData.put("sessionId", SessionId);
                     responseData.put("serverTimeUTC", LocalDateTime.now(ZoneOffset.UTC)); // <-- add this
+                    responseData.put("isexpired", endTime.isBefore(LocalDateTime.now())); // <-- add this
+                    responseData.put("issubmitted", result.IsSubmitted); // <-- add this
 
                     return new APIResponseHelper<>(200, "quiz updated", responseData);
 
@@ -249,7 +262,8 @@ public class QuizController
             boolean timeOver =
                     currentDateUTC.isAfter(endDate) ||
                             (currentDateUTC.isEqual(endDate) && currentTimeUTC.isAfter(endTime));
-            if (timeOver) {
+            if (timeOver)
+            {
                 return new APIResponseHelper<>(410, "Quiz time over", null);
             }
 
@@ -263,6 +277,70 @@ public class QuizController
             return new APIResponseHelper<>(500, "Internal server error", null);
         }
     }
+
+
+
+
+    @PostMapping("submitquiz")
+    public APIResponseHelper<?> submitQuiz(@RequestBody SubmitQuizRequest request)
+    {
+        String studentId = jwtAuthenticationFilter.UserId;
+
+        try {
+
+            var result = quizservice.getquizsessiondata(request.sessionId);
+            if(result == null)
+            {
+                return new APIResponseHelper<>(404, "session not found", null);
+            }
+            // 1️⃣ Validate session
+
+            if (result == null) {
+                return new APIResponseHelper<>(404, "Invalid session", null);
+            }
+
+            if (!"started".equalsIgnoreCase(result.Status)) {
+                return new APIResponseHelper<>(400, "Quiz already submitted", null);
+            }
+
+            String answersXml = buildAnswersXml(request.answers);
+
+                                                                           //quizsessiondata
+            var Issubmitetddata =  quizservice.saveSubmittedAnswers(request,answersXml,studentId,result);
+
+
+
+//            // 2️⃣ Save answers
+//            quizservice.saveSubmittedAnswers(request, session);
+//
+//            // 3️⃣ Mark session completed
+//            quizService.completeSession(
+//                    request.sessionId,
+//                    request.autoSubmit,
+//                    request.violation
+//            );
+
+            return new APIResponseHelper<>(200, "Quiz submitted successfully", null);
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return new APIResponseHelper<>(500, "Submission failed", null);
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 }
