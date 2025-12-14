@@ -26,7 +26,7 @@ public class LoginSignUpRepository
     private SimpleJdbcCall simpleJdbcCall;
 
 
-    public boolean SignUp(SignupDto dto)
+    public int SignUp(SignupDto dto)
     {
 
         try {
@@ -37,7 +37,7 @@ public class LoginSignUpRepository
                     "@State=:State, @Pincode=:Pincode, @InstitutionId=:InstitutionId, " +
                     "@InstitutionName=:InstitutionName, @BoardId=:BoardId, " +
                     "@ClassId=:ClassId, @SubjectId=:SubjectId, @BatchId=:BatchId, " +
-                    "@Status=:Status, @Password=:Password,@ImageName=:ImageName";
+                    "@Status=:Status, @Password=:Password,@ImageName=:ImageName,@StudentCast=:StudentCast";
 
             MapSqlParameterSource params = new MapSqlParameterSource();
 
@@ -73,15 +73,17 @@ public class LoginSignUpRepository
             DbHelper.addParameter(params, "BoardId", dto.boardId != null ? Integer.parseInt(dto.boardId) : null);
             DbHelper.addParameter(params, "ClassId", dto.classId != null ? Integer.parseInt(dto.classId) : null);
             DbHelper.addParameter(params, "SubjectId", dto.SubjectId != null ? Integer.parseInt(dto.SubjectId) : null);
-            DbHelper.addParameter(params, "BatchId", dto.batchId != null ? Integer.parseInt(dto.batchId) : null);
+            DbHelper.addParameter(params,"BatchId", 0   );
 
             DbHelper.addParameter(params, "Status", dto.status != null ? Integer.parseInt(dto.status) : 1);
             DbHelper.addParameter(params, "Password", dto.password);
              DbHelper.addParameter(params, "ImageName", dto.imageName);
+             DbHelper.addParameter(params, "StudentCast", dto.Caste);
+
 
             int result = namedJdbcTemplate.update(sql, params);
 
-            return result > 0;
+            return result ;
         } catch (Exception ex)
         {
                 throw ex;
@@ -144,6 +146,95 @@ public class LoginSignUpRepository
 
         return dto;
     }
+
+
+    public Integer CheckIsExistdata(String flag, String data)
+    {
+        try
+        {
+            String sql = "EXEC CheckDataExist @Flag=:Flag";
+
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            DbHelper.addParameter(params, "Flag", flag);
+
+            if ("EMAIL".equalsIgnoreCase(flag))
+            {
+                sql += ", @Email=:Email";
+                DbHelper.addParameter(params, "Email", data);
+            }
+            else if ("MOBILE".equalsIgnoreCase(flag))
+            {
+                sql += ", @Mobile=:Mobile";
+                DbHelper.addParameter(params, "Mobile", data);
+            }
+
+            Integer isExist = namedJdbcTemplate.queryForObject(
+                    sql,
+                    params,
+                    Integer.class
+            );
+             return isExist;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+
+
+    public Map<String, Object> verifyOTP(String mobile, String otp)
+    {
+        String sql = "EXEC sp_manageMobileOTP @Flag=:Flag, " +
+                "@Mobile=:Mobile, @OTP=:OTP";
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("Flag", "V");
+        params.put("Mobile", mobile);
+        params.put("OTP", otp);
+
+        List<Map<String, Object>> rows = namedJdbcTemplate.queryForList(sql, params);
+        Map<String, Object> response = new HashMap<>();
+        for (Map<String, Object> row : rows)
+        {
+            response.put("Status",(row.get("Status") != null ? row.get("Status").toString() : ""));
+            response.put( "Message",(row.get("Message") != null ? row.get("Message").toString() : ""));
+        }
+        return response;
+    }
+
+
+    public Map<String, Object> sendOTP(String mobile, String otp)
+    {
+        String sql = "EXEC sp_manageMobileOTP @Flag=:Flag, @Mobile=:Mobile, @OTP=:OTP";
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("Flag", "S");
+        params.put("Mobile", mobile);
+        params.put("OTP", otp);
+
+        List<Map<String, Object>> rows = namedJdbcTemplate.queryForList(sql, params);
+
+        Map<String, Object> response = new HashMap<>();
+
+        if (!rows.isEmpty())
+        {
+            Map<String, Object> row = rows.get(0);
+
+            response.put("Status",
+                    row.get("Status") != null ? row.get("Status").toString() : "0");
+
+            response.put("Message",
+                    row.get("Message") != null ? row.get("Message").toString() : "");
+        }
+        else
+        {
+            response.put("Status", "0");
+            response.put("Message", "Unable to send OTP");
+        }
+
+        return response;
+    }
+
 
 
 }

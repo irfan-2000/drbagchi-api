@@ -158,6 +158,7 @@ public class QuizRepository
         public String CourseName;
         public String TotalQuestions;
 
+        public String SessionId;
     }
 
 
@@ -179,7 +180,8 @@ public class QuizRepository
             for (Map<String, Object> row : rows)
             {
                 GetQuizStatus data= new GetQuizStatus();
-
+            if(!Flag.equals("RN"))
+            {
                 data.QuizId       = row.get("QuizId")       != null ? row.get("QuizId").toString()       : "";
                 data.CourseId     = row.get("CourseId")     != null ? row.get("CourseId").toString()     : "";
                 data.Title        = row.get("Title")        != null ? row.get("Title").toString()        : "";
@@ -202,6 +204,22 @@ public class QuizRepository
 
 
                 quiz.add(data);
+
+
+            }else {
+                data.QuizId       = row.get("QuizId")       != null ? row.get("QuizId").toString()       : "";
+                data.CourseId     = row.get("CourseId")     != null ? row.get("CourseId").toString()     : "";
+                data.Title        = row.get("Title")        != null ? row.get("Title").toString()        : "";
+                 data.StartTime      = row.get("StartTime")      != null ? row.get("StartTime").toString()      : "";
+                data.EndTime  = row.get("EndTime")  != null ? row.get("EndTime").toString()  : "";
+                data.BatchName   = row.get("BatchName")   != null ? row.get("BatchName").toString()   : "";
+                data.CourseName   = row.get("CourseName")   != null ? row.get("CourseName").toString()   : "";
+                data.SessionId   = row.get("SessionId")   != null ? row.get("SessionId").toString()   : "";
+
+                quiz.add(data);
+
+            }
+
 
                             }
 
@@ -585,6 +603,32 @@ public class QuizRepository
 
         return insertedCount;
     }
+
+
+    public String Isquizexists(int quizid,int CourseId,int studentid)
+    {
+        String SessionId = "";
+        String sql = "EXEC Isquizexists @courseid=:courseid, @quizid=:quizid,@studentid=:studentid";
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        DbHelper.addParameter(params, "courseid", CourseId);
+        DbHelper.addParameter(params, "quizid", quizid);
+        DbHelper.addParameter(params, "studentid", studentid);
+
+        List<Map<String,Object>> rows = namedJdbcTemplate.queryForList(sql,params);
+
+
+        for (Map<String, Object> row : rows)
+        {
+            SessionId= row.get("SessionId") != null ? row.get("SessionId").toString() : "";
+
+            }
+
+
+        return SessionId;
+        }
+
+
 
 
 }

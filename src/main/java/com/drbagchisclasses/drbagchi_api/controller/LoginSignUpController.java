@@ -1,9 +1,6 @@
 package com.drbagchisclasses.drbagchi_api.controller;
 
-import com.drbagchisclasses.drbagchi_api.dto.Batch;
-import com.drbagchisclasses.drbagchi_api.dto.LoginDto;
-import com.drbagchisclasses.drbagchi_api.dto.LoginResponseDto;
-import com.drbagchisclasses.drbagchi_api.dto.SignupDto;
+import com.drbagchisclasses.drbagchi_api.dto.*;
 import com.drbagchisclasses.drbagchi_api.repository.LoginSignUpRepository;
 import com.drbagchisclasses.drbagchi_api.service.SubjectService;
 import com.drbagchisclasses.drbagchi_api.util.APIResponseHelper;
@@ -19,27 +16,37 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 
 @RestController
-@RequestMapping("/api/")
+@RequestMapping("/api/guest/")
 public class LoginSignUpController
 {
 
     @Autowired
     private LoginSignUpRepository loginSignUpRepository;
 
+    @Autowired
+    private SubjectService subjectService;
+
+
 
     @Autowired
     private JwtUtil jwtUtil;
 
     @PostMapping("SubmitSignup")
-    public APIResponseHelper<Boolean> SubmitSignup (HttpServletRequest request,@RequestPart(value = "profileImage", required = false) MultipartFile profileImage    )
+    public APIResponseHelper<?> SubmitSignup (HttpServletRequest request,@RequestPart(value = "profileImage", required = false) MultipartFile profileImage    )
     {
         try
         {
+
+
+
 
             SignupDto dto = new SignupDto();
 
@@ -62,6 +69,13 @@ public class LoginSignUpController
             dto.password = request.getParameter("password");
             dto.IsEditing = request.getParameter("IsEditing");
             dto.OldProfileImage = request.getParameter("OldProfileImage");
+            dto.Caste = request.getParameter("caste");
+
+            if(loginSignUpRepository.CheckIsExistdata("MOBILE",dto.phone) > 0)
+            {
+                return new APIResponseHelper<>(409, "Mobile number already exist", false);
+            }
+
 
             if (Boolean.parseBoolean(dto.IsEditing) && (profileImage == null))
             {
@@ -86,11 +100,11 @@ public class LoginSignUpController
                     dto.imageName = randomFileName;
                 }
             }
-            boolean result = loginSignUpRepository.SignUp(dto);
+            Integer result = loginSignUpRepository.SignUp(dto);
 
-            if (result)
+            if (result > 0)
             {
-                return new APIResponseHelper<>(200, "Success", true);
+                return new APIResponseHelper<>(200, "Success", result);
             } else {
                 return new APIResponseHelper<>(204, "No records inserted", false);
             }
@@ -141,6 +155,125 @@ public class LoginSignUpController
     return authentication;
     }
 
+
+    @GetMapping("GetAvailableSubjects")
+    @PermitAll
+    public APIResponseHelper<List<SubjectDto>> getAllSubjects(@RequestParam int ClassId)
+    {
+        try {
+
+            List<SubjectDto> result = subjectService.getAllSubjects(ClassId);
+
+            if (result != null && !result.isEmpty()) {
+                return new APIResponseHelper<>(200, "Success", result);
+            } else {
+                return new APIResponseHelper<>(204, "No subjects found", null);
+            }
+
+        } catch (Exception ex) {
+            return new APIResponseHelper<>(500, "Internal server error: " + ex.getMessage(), null);
+        }
+    }
+
+    @GetMapping("GetAvailableClasses")
+    @PermitAll
+    public APIResponseHelper<List<Classes>> GetAvailableClasses()
+    {
+        try
+        {
+            List<Classes> result = subjectService.GetAvailableClasses();
+
+            if (result != null && !result.isEmpty()) {
+                return new APIResponseHelper<>(200, "Success", result);
+            } else {
+                return new APIResponseHelper<>(204, "No subjects found", null);
+            }
+
+        }catch (Exception ex)
+        {
+            return new APIResponseHelper<>(500, "Internal server error: " + ex.getMessage(), null);
+        }
+
+    }
+
+
+    @GetMapping("GetAvailableBatches")
+    public APIResponseHelper<List<Batch>> getAvailableBatches(int ClassId, int SubjectId , int BoardId)
+    {
+        try
+        {
+            List<Batch> result = subjectService.getAvailableBatches(ClassId,SubjectId,BoardId );
+
+            if (result != null && !result.isEmpty())
+            {
+                return new APIResponseHelper<>(200, "Success", result);
+            } else
+            {
+                return new APIResponseHelper<>(204, "No Batches found", null);
+            }
+
+        }catch (Exception ex)
+        {
+            return new APIResponseHelper<>(500, "Internal server error: " + ex.getMessage(), null);
+
+        }
+    }
+
+
+
+    @GetMapping("GetAvailableBoards")
+    @PermitAll
+    public APIResponseHelper<List<Board>> GetAvailableBoards()
+    {
+        try
+        {
+            List<Board> result = subjectService.GetAvailableBoards();
+
+            if (result != null && !result.isEmpty()) {
+                return new APIResponseHelper<>(200, "Success", result);
+            } else {
+                return new APIResponseHelper<>(204, "No subjects found", null);
+            }
+
+        }catch (Exception ex)
+        {
+            return new APIResponseHelper<>(500, "Internal server error: " + ex.getMessage(), null);
+        }
+
+    }
+
+
+
+    @PostMapping("VerifyOTP")
+    @PermitAll
+    public APIResponseHelper<?> VerifyOTP(String mobile, String purpose, String otp, String email)
+    {
+
+        var result = loginSignUpRepository.verifyOTP(mobile,otp);
+     return new APIResponseHelper<>(200, "No subjects found", result);
+    }
+
+    @PostMapping("SendOTP")
+    @PermitAll
+    public APIResponseHelper<?> SendOTP(String mobile, String purpose,String email)
+    {
+        String otp = CreateOTP();
+        var result = loginSignUpRepository.sendOTP(mobile,otp);
+        return new APIResponseHelper<>(200, "OTP checked success", result);
+    }
+
+
+    public   String CreateOTP()
+    {
+        // Current datetime formatted to seconds
+        String dateTime = LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+        // Generate a 6-digit random session id
+        String sessionId = String.format("%06d", new Random().nextInt(999999));
+
+        return   sessionId;
+    }
 
 
 }

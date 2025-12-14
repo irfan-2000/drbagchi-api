@@ -29,4 +29,5 @@ public class SignupDto
     public String OldProfileImage = null;
     public String Flag = null;
     public String StudentId = null;
+    public String Caste;
 }

@@ -36,6 +36,40 @@ public class QuizController
             // Get student ID from JWT
             String studentId = jwtAuthenticationFilter.UserId;
 
+            //checkif quiz already started and resumeing it
+            var Sessionid = quizservice.Isquizexists( Integer.parseInt(QuizId) ,Integer.parseInt(CourseId)  ,Integer.parseInt(studentId));
+
+            if(!Sessionid.equals(""))
+            {
+
+                var result = quizservice.getquizsessiondata(Sessionid);
+
+                // check if quiz is expired
+
+                DateTimeFormatter formatter =
+                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+                LocalDateTime endTime =
+                        LocalDateTime.parse(result.EndTime, formatter);
+
+
+                Map<String, Object> responseData = new HashMap<>();
+                responseData.put("startTimeUTC", result.StartTime);
+                responseData.put("endTimeUTC", result.EndTime);
+                responseData.put("sessionId", Sessionid);
+                responseData.put("serverTimeUTC", LocalDateTime.now(ZoneOffset.UTC)); // <-- add this
+                responseData.put("isexpired", endTime.isBefore(LocalDateTime.now())); // <-- add this
+                responseData.put("issubmitted", result.IsSubmitted); // <-- add this
+
+                Map<String, String> obj = new HashMap<>();
+                obj.put("Sessionid", Sessionid);
+
+                return new APIResponseHelper<>(200, "Success", obj);
+
+            }
+
+
+            //--
+
             // Fetch quiz data
             var quizdata = quizservice.getquizdata(Integer.parseInt(QuizId));
             if (quizdata == null)
@@ -73,7 +107,6 @@ public class QuizController
                 return new APIResponseHelper<>(404, "session not found", null);
             }
 
-
             if (!"started".equals(result.Status))
             {
                 return new APIResponseHelper<>(404, "quiz not started or completed", null);
@@ -91,8 +124,6 @@ public class QuizController
                     quizdata.duration
             );
             int durationMinutes = getMinutes(quizdata.duration);
-
-
 
             if ("1".equals(result.Attempt))
             { // Fresh page load

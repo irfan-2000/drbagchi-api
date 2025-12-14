@@ -20,17 +20,18 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter();
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception
+    {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/public/**", "/api/Authenticate","/media/**").permitAll() // Add your public endpoint
+                        .requestMatchers("/auth/**", "/public/**", "/api/guest/**","/media/**").permitAll() // Add your public endpoint
                         .anyRequest().authenticated() // all other endpoints require auth
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
-                            ExceptionLogger.logException(authException);
+                                ExceptionLogger.logException(authException);
                             response.setStatus(401);
                             response.setContentType("application/json");
                             response.getWriter().write("{\"status\":401,\"message\":\"Unauthorized - Please login\"}");
