@@ -9,6 +9,7 @@ import com.drbagchisclasses.drbagchi_api.util.JwtUtil;
 import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +20,7 @@ import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
@@ -33,7 +35,8 @@ public class LoginSignUpController
 
     @Autowired
     private SubjectService subjectService;
-
+    @Value("${GlobalUploadPath}")
+    private String GlobalUploadPath;
 
 
     @Autowired
@@ -44,9 +47,6 @@ public class LoginSignUpController
     {
         try
         {
-
-
-
 
             SignupDto dto = new SignupDto();
 
@@ -93,7 +93,7 @@ public class LoginSignUpController
                     String randomFileName = UUID.randomUUID().toString() + extension;
 
                     // Save file to target folder
-                    String uploadDir = "D:\\Dr.Bagchi_Media\\StudentImages\\";
+                    String uploadDir =GlobalUploadPath + "StudentImages"; // "D:\\Dr.Bagchi_Media\\StudentImages\\";
                     File dest = new File(uploadDir + randomFileName);
                     profileImage.transferTo(dest);
 
@@ -104,6 +104,8 @@ public class LoginSignUpController
 
             if (result > 0)
             {
+                String otp = CreateOTP();
+                  loginSignUpRepository.sendOTP(dto.phone,otp);
                 return new APIResponseHelper<>(200, "Success", result);
             } else {
                 return new APIResponseHelper<>(204, "No records inserted", false);
@@ -112,7 +114,7 @@ public class LoginSignUpController
 
         } catch (DuplicateKeyException ex) {
             // Handle duplicate key (e.g., phone/email already exists)
-            return new APIResponseHelper<>(409, "Already exists", false);
+            return new APIResponseHelper<>(409, "Email or Mobile Already exists", false);
 
         } catch (Exception ex)
         {
@@ -276,6 +278,57 @@ public class LoginSignUpController
     }
 
 
+
+    @PostMapping("CheckMobileExist")
+    @PermitAll
+    public APIResponseHelper<?>CheckMobileExist(String Mobile)
+    {
+
+        return new APIResponseHelper<>(200, "Mobile number checked", loginSignUpRepository.CheckIsExistdata("MOBILE",Mobile));
+
+    }
+
+
+
+
+
+    @PostMapping("ResetPassword")
+    @PermitAll
+    public APIResponseHelper<?>ResetPassword(String Mobile,String Password)
+    {
+        Map<String, String> IsOTPVerified = loginSignUpRepository.IsOTPVerified(Mobile);
+
+        String mobile = IsOTPVerified.get("Mobile");
+        String Isverified = IsOTPVerified.get("IsVerified");
+        if (!mobile.equals(""))
+        {
+            if (Integer.parseInt(Isverified) <= 0)
+            {
+                return new APIResponseHelper<>(401, "Mobile number not verfied", false);
+
+            }
+        } else
+        {
+            return new APIResponseHelper<>(401, "Mobile number not exist", false);
+        }
+
+        var result  = loginSignUpRepository.UpdateResetPassword(  Mobile,  Password);
+
+        if(result > 0)
+        {
+            return new APIResponseHelper<>(200, "Password has been Updated", result);
+
+        }else
+        {
+            return new APIResponseHelper<>(501, "Error Updating Password", false);
+
+        }
+
+    }
+
+
 }
+
+
 
 

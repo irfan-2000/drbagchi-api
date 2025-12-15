@@ -237,4 +237,83 @@ public class LoginSignUpRepository
 
 
 
+    public class OtpEntity {
+
+        public String id;
+        public String mobile;
+        public String email;
+        public String purpose;
+        public String otpCode;
+        public String sendCount;
+        public String createdAt;
+        public String expiresAt;
+        public String isVerified;
+
+    }
+
+    public Map<String, String> IsOTPVerified(String Mobile)
+    {
+        Map<String, String> response = new HashMap<>();
+
+        try
+        {
+            String sql = "EXEC IsOTPVerified @Mobile=:Mobile";
+
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            DbHelper.addParameter(params, "Mobile", Mobile);
+
+
+            List<Map<String, Object>> rows = namedJdbcTemplate.queryForList(sql, params);
+
+            if (!rows.isEmpty())
+            {
+                Map<String, Object> row = rows.get(0);
+
+                response.put("Mobile",
+                        row.get("Mobile") != null ? row.get("Mobile").toString() : "0");
+
+                response.put("IsVerified",
+                        row.get("IsVerified") != null ? row.get("IsVerified").toString() : "");
+            }else
+            {
+                response.put("Mobile", "");
+                response.put("IsVerified",  "");
+            }
+
+         }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+
+        return response;
+    }
+
+
+    public Integer UpdateResetPassword(String Mobile,String Password)
+    {
+        Map<String, Object> response = new HashMap<>();
+
+        try
+        {
+            String sql = "EXEC UpdateResetPassword @Flag=:Flag, @Mobile=:Mobile, @Password=:Password";
+
+            // String sql = "EXEC UpdateResetPassword @Flag=:Flag,@Mobile=:Mobile,@Password=:Password";
+
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            DbHelper.addParameter(params, "Mobile", Mobile);
+            DbHelper.addParameter(params, "Password", Password);
+            DbHelper.addParameter(params, "Flag", "U");
+
+            int result = namedJdbcTemplate.update(sql, params);
+
+                return result;
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+     }
+
+
 }
