@@ -118,6 +118,8 @@ public class LoginSignUpRepository
                 dto.UserId   = studentRow.get("StudentId") != null ? studentRow.get("StudentId").toString() : "";
                 dto.FullName = studentRow.get("FullName")  != null ? studentRow.get("FullName").toString()  : "";
                 dto.Email    = studentRow.get("Email")     != null ? studentRow.get("Email").toString()     : "";
+                dto.IsActive    = studentRow.get("IsActive")     != null ? studentRow.get("IsActive").toString()     : "";
+
             }
         }
 
@@ -234,8 +236,6 @@ public class LoginSignUpRepository
 
         return response;
     }
-
-
 
     public class OtpEntity {
 

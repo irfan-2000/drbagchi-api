@@ -405,6 +405,44 @@ return Course;
 
 
 
+    public List<LiveSessionDto> GetOngoingClass(int userId)
+    {
+        List<LiveSessionDto> liveClasses = new ArrayList<>();
+
+        String sql = "EXEC sp_GetOngoingLiveSessionsForStudent @StudentId=:userid";
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        DbHelper.addParameter(params, "userid", userId); // corrected param name
+
+        List<Map<String, Object>> rows = namedJdbcTemplate.queryForList(sql, params);
+
+        for (Map<String, Object> row : rows)
+        {
+            LiveSessionDto dto = new LiveSessionDto();
+
+            dto.liveSessionId = row.get("LiveSessionId") != null ? row.get("LiveSessionId").toString() : null;
+            dto.courseId      = row.get("CourseId")      != null ? row.get("CourseId").toString()      : null;
+            dto.batchId       = row.get("BatchId")       != null ? row.get("BatchId").toString()       : null;
+            dto.topic         = row.get("Topic")         != null ? row.get("Topic").toString()         : null;
+            dto.startTime     = row.get("StartTime")     != null ? row.get("StartTime").toString()     : null;
+            dto.endTime       = row.get("EndTime")       != null ? row.get("EndTime").toString()       : null;
+            dto.teacherName   = row.get("TeacherName")   != null ? row.get("TeacherName").toString()   : null;
+            dto.zoomMeetingId = row.get("ZoomMeetingId") != null ? row.get("ZoomMeetingId").toString() : null;
+            dto.zoomJoinUrl   = row.get("ZoomJoinUrl")   != null ? row.get("ZoomJoinUrl").toString()   : null;
+            dto.zoomPassword  = row.get("ZoomPassword")  != null ? row.get("ZoomPassword").toString()  : null;
+          //  dto.zoomStartUrl  = row.get("ZoomStartUrl")  != null ? row.get("ZoomStartUrl").toString()  : null;
+            dto.status        = row.get("Status")        != null ? row.get("Status").toString()        : null;
+
+            dto.name          = row.get("name")          != null ? row.get("name").toString()          : null;
+            dto.batchName     = row.get("batchname")     != null ? row.get("batchname").toString()     : null;
+            dto.courseName    = row.get("coursename")    != null ? row.get("coursename").toString()    : null;
+
+            liveClasses.add(dto);
+        }
+
+        return liveClasses;
+    }
+
 
 
 

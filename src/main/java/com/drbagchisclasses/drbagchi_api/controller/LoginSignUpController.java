@@ -135,7 +135,7 @@ public class LoginSignUpController
             {
 
                 String Token = jwtUtil.generateToken(result.FullName,result.UserId,result.Email);
-    result.token =Token;
+                   result.token =Token;
                 // Successful login, JWT can be generated here
                 return new APIResponseHelper<>(200, "Login successful", result);
             } else {

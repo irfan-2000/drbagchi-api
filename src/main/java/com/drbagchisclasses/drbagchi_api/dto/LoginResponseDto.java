@@ -19,6 +19,7 @@ public class LoginResponseDto
    public  String courses;
    public  List<CoursesEnrolled> enrolledCourses;
 
+   public String IsActive;
 
 
 

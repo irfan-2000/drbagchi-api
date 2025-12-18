@@ -456,12 +456,22 @@ public class CoursesController
         }
     }
 
+    @GetMapping ("GetOngoingClass")
+    @PreAuthorize("isAuthenticated()")
+    public APIResponseHelper<?> GetOngoingClass( )
+    {        String userId = jwtAuthenticationFilter.UserId;
+
+        try
+        {
+            var result   = allCourses.GetOngoingClass(Integer.parseInt(userId));
+            return new APIResponseHelper<>(200, " classes fetched successfully", result);
 
 
+        }catch (Exception e)
+        {
+            return new APIResponseHelper<>(500, "message" + e.getMessage().toString(), false);
 
-
-
-
-
+        }
+    }
 
 }
